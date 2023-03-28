@@ -47,53 +47,53 @@ def get_nested_files(directory: str) -> list:
     return result
 
 
-def check_file_exists(file_path: str) -> bool:
+def check_file_exists(item_path: str) -> bool:
     result = bool
-    result = os.path.isfile(file_path)
+    result = os.path.isfile(item_path)
     return result
 
 
-def import_json(json_file_path: str):
+def import_json(json_item_path: str):
     result = None
-    with open(json_file_path, "r") as infile:
+    with open(json_item_path, "r") as infile:
         result = json.load(infile)
     return result
 
 
-def export_json(json_file_path: str, body, indent: int = 2):
+def export_json(json_item_path: str, body, indent: int = 2):
     json_object = None
     json_object = json.dumps(body, indent=indent)
-    with open(json_file_path, "w") as outfile:
+    with open(json_item_path, "w") as outfile:
         outfile.write(json_object)
 
 
-def generate_file_metadata(root_path: str, file_path: str, return_absolute_paths: bool = False) -> dict:
-    # print(file_path)
+def generate_file_metadata(root_path: str, item_path: str, return_absolute_paths: bool = False) -> dict:
+    # print(item_path)
     result = {}
-    result_file_path = ""
+    result_item_path = ""
     item_type = ""
-    absolute_file_path = f'{root_path}/{file_path}'
-    inode_num = os.lstat(absolute_file_path)[stat.ST_INO]
-    ctime_unix = os.path.getctime(absolute_file_path)
+    absolute_item_path = f'{root_path}/{item_path}'
+    inode_num = os.lstat(absolute_item_path)[stat.ST_INO]
+    ctime_unix = os.path.getctime(absolute_item_path)
     ctime_human = time.ctime(ctime_unix)
-    mtime_unix = os.path.getmtime(absolute_file_path)
+    mtime_unix = os.path.getmtime(absolute_item_path)
     mtime_human = time.ctime(mtime_unix)
-    uid = os.stat(absolute_file_path).st_uid
-    gid = os.stat(absolute_file_path).st_gid
+    uid = os.stat(absolute_item_path).st_uid
+    gid = os.stat(absolute_item_path).st_gid
     owner = pwd.getpwuid(uid).pw_name
     group = grp.getgrgid(gid).gr_name
     if return_absolute_paths:
-        result_file_path = absolute_file_path
+        result_item_path = absolute_item_path
     else:
-        result_file_path = file_path
-    if os.path.isfile(absolute_file_path):
+        result_item_path = item_path
+    if os.path.isfile(absolute_item_path):
         item_type = 'file'
-    elif os.path.isdir(absolute_file_path):
+    elif os.path.isdir(absolute_item_path):
         item_type = 'directory'
     else:
         item_type = 'unknown'
     result = {
-        'file_path': result_file_path,
+        'item_path': result_item_path,
         'type': item_type,
         'inode_num': inode_num,
         'ctime_unix': ctime_unix,
@@ -114,39 +114,50 @@ def generate_dir_metadata(dir_path: str, return_absolute_paths: bool = False) ->
     # item_paths = get_nested_files(directory = dir_path)
     item_paths = get_filesystem_nested_items(directory=dir_path)
     for path in item_paths:
-        result.append(generate_file_metadata(root_path = dir_path, file_path = path))
+        result.append(generate_file_metadata(root_path = dir_path, item_path = path))
     return result
 
 
-def get_file_metadata_from_state(state: list, file_path: str):
+def get_file_metadata_from_state(file_metadata: dict, state_body: str):
+    """
+    Search file metadata in state. Accepts metadata as searcg criteria.
+    Returns found file metadata dict.
+    """
     result = {}
-    for entry in state:
-        if file_path == entry['file_path']:
+    item_path = ""
+    item_path = file_metadata['item_path']
+    for entry in state_body:
+        if item_path == entry['item_path']:
             result = entry
             break
     return result
 
 
-def copy_files(source_dir_metadata: list, source_path: str, target_path: str, preserve_ownership: bool):
-    for entry in source_dir_metadata:
-        # print(entry['file_path'])
-        # shutil.copy(entry['file_path'], target_path)
-        # target_result_path = os.path.join(target_path, os.path.relpath(entry['file_path'], source_path))
-        os.makedirs(os.path.dirname(f'''{target_path}/{entry['file_path']}'''), exist_ok=True)
-        shutil.copy(f'''{source_path}/{entry['file_path']}''', f'''{target_path}/{entry['file_path']}''')
-        if preserve_ownership:
-            os.chown(target_result_path, entry['uid'], entry['gid'])
+# def copy_files(source_dir_metadata: list, source_path: str, target_path: str, preserve_ownership: bool):
+#     for entry in source_dir_metadata:
+#         # print(entry['item_path'])
+#         # shutil.copy(entry['item_path'], target_path)
+#         # target_result_path = os.path.join(target_path, os.path.relpath(entry['item_path'], source_path))
+#         os.makedirs(os.path.dirname(f'''{target_path}/{entry['item_path']}'''), exist_ok=True)
+#         shutil.copy(f'''{source_path}/{entry['item_path']}''', f'''{target_path}/{entry['item_path']}''')
+#         if preserve_ownership:
+#             os.chown(target_result_path, entry['uid'], entry['gid'])
 
 
-def copy_file(source_path: str, source_metadata: dict, target_path: str, preserve_ownership: bool):
-    # target_result_path = os.path.join(target_path, os.path.relpath(entry['file_path'], source_path))
+def copy_filesystem_item(source_file_metadata: dict, source_path: str, target_path: str, preserve_ownership: bool):
+    os.makedirs(os.path.dirname(f'{target_path}/'), exist_ok=True)
+    item_path = source_file_metadata['item_path']
+    item_uid = source_file_metadata['uid']
+    item_gid = source_file_metadata['gid']
 
-    os.makedirs(os.path.dirname(target_path), exist_ok=True)
-    shutil.copy(source_path, target_path)
+    if source_file_metadata['type'] == 'directory':
+        os.makedirs(os.path.dirname(f'{target_path}/{item_path}/'), exist_ok=True)
+    elif source_file_metadata['type'] == 'file':
+        shutil.copy(f'{source_path}/{item_path}', f'{target_path}/{item_path}')
     if preserve_ownership:
-        os.chown(target_path, source_metadata['uid'], source_metadata['gid'])
+        os.chown(f'{target_path}/{item_path}', item_uid, item_gid)
 
         # print(target_result_path)
-        # print(f'''{entry['file_path']} --> {target_result_path}''')
+        # print(f'''{entry['item_path']} --> {target_result_path}''')
 
 
