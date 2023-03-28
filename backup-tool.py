@@ -108,6 +108,10 @@ def main():
     utils.export_json(json_file_path='debug/target_state.json', 
                       body=current_target_state_body)
 
+    print(f'Source items: {len(current_source_state_body)}')
+    
+        
+
     # utils.export_json(json_file_path='target_state.json', body=target_current_source_state_body)
 
 
