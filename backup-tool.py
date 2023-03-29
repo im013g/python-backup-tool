@@ -18,6 +18,7 @@ def main():
     previous_state_file_exist = bool
     previous_state_body = []
     state_file = args.state_file
+    create_new_state_file = bool
     
     target_path = args.target_path
     target_path_files = []
@@ -28,30 +29,25 @@ def main():
 
     previous_state_file_exist = utils.check_file_exists(item_path=state_file)
 
-
-    # source_path_files = utils.get_nested_files(directory=source_path)
-    # current_source_state_body = utils.generate_dir_metadata(dir_path=source_path)
-    # utils.copy_files(source_dir_metadata=current_source_state_body, 
-    #                 source_path=source_path, 
-    #                 target_path=target_path,
-    #                 preserve_ownership=True)
-
+    # if not previous_state_file_exist:
+    #     choice_create_new_state_file = input("The state file does not exist. Would you like to create a new file? (Y)es, (N)o ")
+    #     if choice_create_new_state_file.lower() == "y":
+    #         create_new_state_file = True
+    #     else:
+    #         print("Exiting...")
+    #         exit()
 
     if previous_state_file_exist:
+        """
+        The state file exists. We can compare changes made in the source directory.
+        """
         previous_state_body = utils.import_json(json_item_path=state_file)
-    #     # print(previous_state_body)
 
         for current_file_metadata in current_source_state_body:
-            # print(f'''Compare {current_file_metadata['item_path']} with previous state''')
-            # current_file_metadata = {}
+
             previous_file_metadata = {}
             previous_file_metadata = utils.get_file_metadata_from_state(file_metadata=current_file_metadata, 
                                                                         state_body=previous_state_body)
-            # print()
-            # print('current_file_metadata:')
-            # print(current_file_metadata)
-            # print('previous_file_metadata:')
-            # print(previous_file_metadata)
 
             if current_file_metadata != previous_file_metadata:
                 print(f'''Source changed: {current_file_metadata['item_path']}''')
@@ -116,7 +112,7 @@ def main():
     #                 preserve_ownership=True)
 
 
-    utils.export_json(json_item_path='debug/source_state.json', 
+    utils.export_json(json_item_path=state_file, 
                       body=current_source_state_body)                  
     utils.export_json(json_item_path='debug/target_state.json', 
                       body=current_target_state_body)
