@@ -153,7 +153,7 @@ def copy_filesystem_item(source_file_metadata: dict, source_path: str, target_pa
     if source_file_metadata['type'] == 'directory':
         os.makedirs(os.path.dirname(f'{target_path}/{item_path}/'), exist_ok=True)
         os.chown(f'{target_path}/{item_path}', item_uid, item_gid)
-        # shutil.copystat(src_dir, dst_dir)
+        shutil.copystat(f'{source_path}/{item_path}', f'{target_path}/{item_path}')
     elif source_file_metadata['type'] == 'file':
         shutil.copy2(f'{source_path}/{item_path}', f'{target_path}/{item_path}')
     if preserve_ownership:
