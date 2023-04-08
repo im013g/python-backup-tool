@@ -46,12 +46,15 @@ def get_nested_files(directory: str) -> list:
             result.append(os.path.join(root, file))
     return result
 
-
 def check_file_exists(item_path: str) -> bool:
     result = bool
     result = os.path.isfile(item_path)
     return result
 
+def check_dir_exists(item_path: str) -> bool:
+    result = bool
+    result = os.path.isdir(item_path)
+    return result
 
 def import_json(json_item_path: str):
     result = None
@@ -92,13 +95,23 @@ def generate_file_metadata(root_path: str, item_path: str, return_absolute_paths
         item_type = 'directory'
     else:
         item_type = 'unknown'
+    # result = {
+    #     'item_path': result_item_path,
+    #     'type': item_type,
+    #     'inode_num': inode_num,
+    #     'ctime_unix': ctime_unix,
+    #     'mtime_unix': mtime_unix,
+    #     'ctime_human': ctime_human,
+    #     'mtime_human': mtime_human,
+    #     'uid': uid,
+    #     'gid': gid,
+    #     'owner': owner,
+    #     'group': group 
+    # }
     result = {
         'item_path': result_item_path,
         'type': item_type,
-        'inode_num': inode_num,
-        'ctime_unix': ctime_unix,
         'mtime_unix': mtime_unix,
-        'ctime_human': ctime_human,
         'mtime_human': mtime_human,
         'uid': uid,
         'gid': gid,
@@ -144,22 +157,62 @@ def get_file_metadata_from_state(file_metadata: dict, state_body: str):
 #             os.chown(target_result_path, entry['uid'], entry['gid'])
 
 
-def copy_filesystem_item(source_file_metadata: dict, source_path: str, target_path: str, preserve_ownership: bool):
+# def copy_filesystem_item(source_item_metadata: dict, source_path: str, target_path: str, preserve_ownership: bool):
+#     os.makedirs(os.path.dirname(f'{target_path}/'), exist_ok=True)
+#     item_path = source_item_metadata['item_path']
+#     item_uid = source_item_metadata['uid']
+#     item_gid = source_item_metadata['gid']
+#     if source_item_metadata['type'] == 'directory':
+#         os.makedirs(os.path.dirname(f'{target_path}/{item_path}/'), exist_ok=True)
+#         # os.chown(f'{target_path}/{item_path}', item_uid, item_gid)
+#         # shutil.copystat(f'{source_path}/{item_path}', f'{target_path}/{item_path}')
+#     elif source_item_metadata['type'] == 'file':
+#         shutil.copy2(f'{source_path}/{item_path}', f'{target_path}/{item_path}')
+#     if preserve_ownership:
+#         os.chown(f'{target_path}/{item_path}', item_uid, item_gid)
+
+
+def copy_directory(source_item_metadata: dict, target_path: str, preserve_metadata: bool = False):
+    item_path = source_item_metadata['item_path']
+    item_uid = source_item_metadata['uid']
+    item_gid = source_item_metadata['gid']
+    item_mtime = source_item_metadata['mtime_unix']
+    if source_item_metadata['type'] == 'directory':
+        if check_dir_exists(item_path=f'{target_path}/{item_path}'):
+            pass
+        else:
+            print()
+            print(f'The dir was created {target_path}/{item_path}')
+            print()
+            os.makedirs(f'{target_path}/{item_path}', exist_ok=True)
+            if preserve_metadata:
+                os.chown(f'{target_path}/{item_path}', item_uid, item_gid)
+                os.utime(f'{target_path}/{item_path}', (item_mtime, item_mtime))
+
+def copy_file(source_item_metadata: dict, source_path: str, target_path: str, preserve_ownership: bool):
     os.makedirs(os.path.dirname(f'{target_path}/'), exist_ok=True)
-    item_path = source_file_metadata['item_path']
-    item_uid = source_file_metadata['uid']
-    item_gid = source_file_metadata['gid']
-
-    if source_file_metadata['type'] == 'directory':
-        os.makedirs(os.path.dirname(f'{target_path}/{item_path}/'), exist_ok=True)
-        os.chown(f'{target_path}/{item_path}', item_uid, item_gid)
-        shutil.copystat(f'{source_path}/{item_path}', f'{target_path}/{item_path}')
-    elif source_file_metadata['type'] == 'file':
+    item_path = source_item_metadata['item_path']
+    item_uid = source_item_metadata['uid']
+    item_gid = source_item_metadata['gid']
+    if source_item_metadata['type'] == 'file':
+        print()
+        print(f'The file was copyed {source_path}/{item_path} ---> {target_path}/{item_path}')
+        print()
         shutil.copy2(f'{source_path}/{item_path}', f'{target_path}/{item_path}')
-    if preserve_ownership:
-        os.chown(f'{target_path}/{item_path}', item_uid, item_gid)
-
-        # print(target_result_path)
-        # print(f'''{entry['item_path']} --> {target_result_path}''')
+        if preserve_ownership:
+            os.chown(f'{target_path}/{item_path}', item_uid, item_gid)
 
 
+def change_directory_timestamp(item_metadata: dict, target_path: str):
+    item_path = item_metadata['item_path']
+    # item_ctime = item_metadata['ctime_unix']
+    item_mtime = item_metadata['mtime_unix']
+    if item_metadata['type'] == 'directory':
+        # os.makedirs(os.path.dirname(f'{target_path}/'), exist_ok=True)
+        print()
+        print(f'The dir timestamp was changed {target_path}/{item_path}')
+        print()
+        os.utime(f'{target_path}/{item_path}', (item_mtime, item_mtime))
+
+        # if source_item_metadata['type'] == 'directory':
+            
